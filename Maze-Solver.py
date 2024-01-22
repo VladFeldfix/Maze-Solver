@@ -1,137 +1,37 @@
-from PIL import Image as pilimg
-from PIL import ImageTk
 import math
-import tkinter
-from tkinter import *
-import tkinter.filedialog
-import os
-import threading
+from PIL import Image
 
 class MazeSolver:
     def __init__(self):
-        # global vars 
-        self.maze_location = None
-        self.BOARD = {}
-        self.player = [None,None]
-        self.target = [None,None]
-        self.startPoint = [None,None]
-        self.next_cells = []
-        self.thread = None
-        self.all_moves = []
-        self.colors = {"W": (0,0,0), "P":(0,162,232), "F":(237,28,36), " ":(255,255,255), "*":(222, 216, 35)}
-
+        # global vars
+        self.Player = [0,0] # the x,y location of the Player
+        self.Target = [0,0] # the x,y location of the Target
+        self.StartPoint = [0,0] # the x,y location of the StartPoint
+        self.Next = [] # a list of potential next steps a list of (delta,x,y)
+        self.Board = {} # a list of Cell objects
+        self.width = 0 # maze width
+        self.height = 0 # maze height
+        
         # start
-        self.setup_gui()
+        self.start()
     
-    def setup_gui(self):
-        # setup main window
-        self.root = tkinter.Tk()
-        self.root.geometry("640x480")
-        self.root.minsize(640, 480)
-        self.root.title("Maze Solver v1.0")
-        self.root.protocol("WM_DELETE_WINDOW", self.exit)
-        self.root.iconbitmap("favicon.ico")
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)
-
-        # draw menu
-        menuFrame = Frame(self.root)
-        menuFrame.grid(column=0, row=0, sticky="news")
-        self.loadButton = Button(menuFrame, text="Load", command=lambda: self.load())
-        self.loadButton.grid(column=0, row=0, padx=5, pady=5, sticky="nw")
-        self.loadButton.config(width = 10)
-        self.startButton = Button(menuFrame, text="Start", command=lambda: self.start())
-        self.startButton.grid(column=1, row=0, padx=5, pady=5, sticky="nw")
-        self.startButton.config(width = 10)
-        self.startButton.config(state=DISABLED)
-
-        # draw puzzle
-        self.canvas = Canvas(self.root,bg='white')
-        self.canvas.grid(column=0, row=1, padx=5, pady=5, columnspan=4, sticky="news")
-
-        # run main loop
-        self.root.mainloop()
-
-    def exit(self):
-        self.root.destroy()
-        os._exit(1)
-
-    def load(self):
-        file = tkinter.filedialog.askopenfile(mode ='r', filetypes =[('Image Files', '*.png')])
-        try:
-            self.thread._stop()
-        except:
-            pass
-        if file:
-            self.maze_location = file.name
-            self.create_maze()
-            self.startButton.config(state=NORMAL)
-
     def start(self):
-        self.thread = threading.Thread(target=self.process)
-        self.thread.daemon = True
-        self.startButton.config(state=DISABLED)
-        self.loadButton.config(state=DISABLED)
-        self.thread.start()
-    
-    def process(self):
-        self.steps = 0
         win = False
+        self.create_maze()
         while not win:
-            #self.draw_maze()
-            #input("Continue >")
             win = True
-            if self.player[0] != self.target[0] or self.player[1] != self.target[1]:
+            if self.Player[0] != self.Target[0] or self.Player[1] != self.Target[1]:
                 win = False
-                # create next step cells, and evaluate the distance of each next cell
-                self.create_next_cells()
-                # move to the lowest distance cell, and make this cell blocket so it cannot be reused
+                self.calculate_next_step()
                 self.move()
-                # now there is a tree of all paths player took, cut down all the unused branches
-                self.steps += 1
-                loc = str(self.player[0])+":"+str(self.player[1])
-                if not loc in self.all_moves:
-                    self.all_moves.append(loc)
-                else:
-                    print("error")
-                    return
-                print(self.steps, ":", self.player[0], self.player[1])
-                self.draw_maze()
-        self.loadButton.config(state=NORMAL)
+        self.draw_maze()
     
-    def create_next_cells(self):
-        directions = [(0,-1), (0,1), (-1,0), (1,0)]
-        for cor in directions:
-            x = self.player[0]+cor[0]
-            y = self.player[1]+cor[1]
-            # d=√((x_2-x_1)²+(y_2-y_1)²)
-            delta = math.ceil(math.sqrt((self.target[0]-x)**2 + (self.target[1]-y)**2))
-            loc = str(x)+":"+str(y)
-            if loc in self.BOARD:
-                if self.BOARD[loc].obj != "W" and self.BOARD[loc].obj != "P" and self.BOARD[loc].obj != "*":
-                    self.next_cells.append((delta,x,y))
-                    self.BOARD[loc].obj = "*"
-        self.next_cells.sort(reverse=True)
-    
-    def move(self):
-        next_cell = self.next_cells.pop()
-        delta = next_cell[0]
-        x = next_cell[1]
-        y = next_cell[2]
-        loc1 = str(self.player[0])+":"+str(self.player[1])
-        loc2 = str(x)+":"+str(y)
-        self.BOARD[loc1].obj = "*"
-        self.player[0] = x
-        self.player[1] = y
-        self.BOARD[loc2].obj = "P"
-        #self.draw_maze()
-
     def create_maze(self):
         # load image
-        im = pilimg.open(self.maze_location)
-        pix = im.load()
-        self.width = im.size[0]
-        self.height = im.size[1]
+        img = Image.open("maze.png")
+        pix = img.load()
+        self.width = img.size[0]
+        self.height = img.size[1]
 
         # convert image to list
         startPoint = False
@@ -150,33 +50,58 @@ class MazeSolver:
                 if not startPoint:
                     if color[0] == 0 and color[1] == 162 and color[2] == 232:
                         obj = "P"
-                        self.player[0] = x
-                        self.player[1] = y
-                        self.startPoint[0] = x
-                        self.startPoint[1] = y
+                        self.Player[0] = x
+                        self.Player[1] = y
+                        self.StartPoint[0] = x
+                        self.StartPoint[1] = y
                         startPoint = True
                 
                 # finish
                 if not finishPoint:
                     if color[0] == 237 and color[1] == 28 and color[2] == 36:
                         obj = "F"
-                        self.target[0] = x
-                        self.target[1] = y
+                        self.Target[0] = x
+                        self.Target[1] = y
                         finishPoint = True
                 
                 # add cell to board
                 loc = str(x)+":"+str(y)
-                self.BOARD[loc] = Cell(x,y,obj)
-        #self.draw_maze()
+                self.Board[loc] = Cell(x,y,obj)
+
+    def move(self):
+        next_cell = self.Next.pop()
+        x = next_cell[1]
+        y = next_cell[2]
+        loc1 = str(self.Player[0])+":"+str(self.Player[1])
+        loc2 = str(x)+":"+str(y)
+        self.Board[loc1].obj = "*"
+        self.Player[0] = x
+        self.Player[1] = y
+        self.Board[loc2].obj = "P"
+    
+    def calculate_next_step(self):
+        directions = [(0,-1), (0,1), (-1,0), (1,0)]
+        for cor in directions:
+            x = self.Player[0]+cor[0]
+            y = self.Player[1]+cor[1]
+            # d=√((x_2-x_1)²+(y_2-y_1)²)
+            delta = math.ceil(math.sqrt((self.Target[0]-x)**2 + (self.Target[1]-y)**2))
+            loc = str(x)+":"+str(y)
+            if loc in self.Board:
+                if self.Board[loc].obj != "W" and self.Board[loc].obj != "P" and self.Board[loc].obj != "*":
+                    self.Next.append((delta,x,y))
+                    self.Board[loc].obj = "*"
+        self.Next.sort(reverse=True)
     
     def draw_maze(self):
         display = []
+        colors = {"W": (0,0,0), "P":(0,162,232), "F":(237,28,36), " ":(255,255,255), "*":(222, 216, 35)}
         for y in range(self.height):
             for x in range(self.width):
                 loc = str(x)+":"+str(y)
-                start_loc = str(self.startPoint[0])+":"+str(self.startPoint[1])
-                end_loc = str(self.target[0])+":"+str(self.target[1])
-                cell = self.BOARD[loc]
+                start_loc = str(self.StartPoint[0])+":"+str(self.StartPoint[1])
+                end_loc = str(self.Target[0])+":"+str(self.Target[1])
+                cell = self.Board[loc]
                 if loc != start_loc and loc != end_loc:
                     obj = cell.obj
                 else:
@@ -184,16 +109,12 @@ class MazeSolver:
                         obj = "P"
                     elif loc == end_loc:
                         obj = "F"
-                add = self.colors[obj]
+                add = colors[obj]
                 display.append(add)
-        new_im = pilimg.new("RGB",(self.width,self.height))
+        new_im = Image.new("RGB",(self.width,self.height))
         new_im.putdata(display)
-        #new_im.show()
+        new_im.show()
         new_im.save("result.png")
-        img = tkinter.PhotoImage(file="result.png")
-        self.root.img = img  # to prevent the image garbage collected.
-        self.canvas.create_image((5,5), image=img, anchor='nw')
-        #print(self.steps)
 
 class Cell:
     def __init__(self,x,y,obj):
