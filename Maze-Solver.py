@@ -1,4 +1,5 @@
 from PIL import Image as pilimg
+from PIL import ImageTk
 import math
 import tkinter
 from tkinter import *
@@ -16,6 +17,7 @@ class MazeSolver:
         self.startPoint = [None,None]
         self.next_cells = []
         self.thread = None
+        self.all_moves = []
         self.colors = {"W": (0,0,0), "P":(0,162,232), "F":(237,28,36), " ":(255,255,255), "*":(222, 216, 35)}
 
         # start
@@ -46,7 +48,7 @@ class MazeSolver:
         # draw puzzle
         self.canvas = Canvas(self.root,bg='white')
         self.canvas.grid(column=0, row=1, padx=5, pady=5, columnspan=4, sticky="news")
-        
+
         # run main loop
         self.root.mainloop()
 
@@ -73,6 +75,7 @@ class MazeSolver:
         self.thread.start()
     
     def process(self):
+        self.steps = 0
         win = False
         while not win:
             #self.draw_maze()
@@ -85,7 +88,16 @@ class MazeSolver:
                 # move to the lowest distance cell, and make this cell blocket so it cannot be reused
                 self.move()
                 # now there is a tree of all paths player took, cut down all the unused branches
-        self.draw_maze()
+                self.steps += 1
+                loc = str(self.player[0])+":"+str(self.player[1])
+                if not loc in self.all_moves:
+                    self.all_moves.append(loc)
+                else:
+                    print("error")
+                    return
+                print(self.steps, ":", self.player[0], self.player[1])
+                self.draw_maze()
+        self.loadButton.config(state=NORMAL)
     
     def create_next_cells(self):
         directions = [(0,-1), (0,1), (-1,0), (1,0)]
@@ -95,8 +107,10 @@ class MazeSolver:
             # d=√((x_2-x_1)²+(y_2-y_1)²)
             delta = math.ceil(math.sqrt((self.target[0]-x)**2 + (self.target[1]-y)**2))
             loc = str(x)+":"+str(y)
-            if self.BOARD[loc].obj != "W" and self.BOARD[loc].obj != "P" and self.BOARD[loc].obj != "*":
-                self.next_cells.append((delta,x,y))
+            if loc in self.BOARD:
+                if self.BOARD[loc].obj != "W" and self.BOARD[loc].obj != "P" and self.BOARD[loc].obj != "*":
+                    self.next_cells.append((delta,x,y))
+                    self.BOARD[loc].obj = "*"
         self.next_cells.sort(reverse=True)
     
     def move(self):
@@ -174,8 +188,12 @@ class MazeSolver:
                 display.append(add)
         new_im = pilimg.new("RGB",(self.width,self.height))
         new_im.putdata(display)
-        new_im.show()
+        #new_im.show()
         new_im.save("result.png")
+        img = tkinter.PhotoImage(file="result.png")
+        self.root.img = img  # to prevent the image garbage collected.
+        self.canvas.create_image((5,5), image=img, anchor='nw')
+        #print(self.steps)
 
 class Cell:
     def __init__(self,x,y,obj):
