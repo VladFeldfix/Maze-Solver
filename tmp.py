@@ -11,8 +11,7 @@ class MazeSolver:
         self.Board = {} # a list of Cell objects
         self.Width = 0 # maze Width
         self.Height = 0 # maze Height
-        self.Path = [] # the list of steps as a list of (turning direction , number of steps)
-        self.Direction = "U" # can be a value U D L R
+        self.Path = None # a linked list of step objects Step(x,y,Next) where next is a Step object too
         
         # start
         self.start()
@@ -76,7 +75,6 @@ class MazeSolver:
         next_cell = self.Next.pop()
         x = next_cell[1]
         y = next_cell[2]
-        old_xy = (self.Player[0], self.Player[1])
         loc1 = str(self.Player[0])+":"+str(self.Player[1])
         loc2 = str(x)+":"+str(y)
 
@@ -90,7 +88,33 @@ class MazeSolver:
         # update the board
         self.Board[loc2].obj = "P"
 
-        # calculate if direction have been changed or if the player is stuck
+        # make a journy diary
+        self.add_step(self.Player[0],self.Player[1])
+        """
+        # get the new location
+        new_xy = (self.Player[0], self.Player[1])
+        # write down what direction player went to
+        direction = "X"
+        if new_xy[0] == old_xy[0]:
+            if new_xy[1] > old_xy[1]:
+                direction = "D"
+            elif new_xy[1] < old_xy[1]:
+                direction = "U"
+        else:
+            if new_xy[0] > old_xy[0]:
+                direction = "R"
+            elif new_xy[0] < old_xy[0]:
+                direction = "L"
+        # white down the last location and what direction should be taken from there
+        self.Path.append([old_xy,direction])
+        #print(old_xy,direction)
+        # the distance between the last and this xy to see if there was a leap
+        delta = int(math.sqrt((new_xy[0]-old_xy[0])**2 + (new_xy[1]-old_xy[1])**2))
+        # if there was a leap mark this place with an x
+        if delta > 1:
+            self.Path[-1][1] = "X"
+
+
         new_xy = (self.Player[0], self.Player[1])
         old_direction = self.Direction
         if new_xy[0] == old_xy[0]:
@@ -103,14 +127,60 @@ class MazeSolver:
                 self.Direction = "R"
             elif new_xy[0] < old_xy[0]:
                 self.Direction = "L"
-
         delta = int(math.sqrt((new_xy[0]-old_xy[0])**2 + (new_xy[1]-old_xy[1])**2))
         print(old_xy, new_xy, self.Direction, delta)
-        input(">")
-        if delta == 1:
-            pass
-            #self.Path.append(self.Direction)
-        self.Path.append(self.Direction)
+        self.Path.append([old_xy, True])
+        if delta != 1:
+            i = 0
+            for x in self.Path:
+                self.Path[i][1] = True
+                i += 1
+            print("Before: ",self.Path)
+            adjacent = False
+            i = len(self.Path)-1
+            while not adjacent:
+                p1 = new_xy
+                p2 = self.Path[i][0]
+                adjacent = self.test_adjacent(p1, p2)
+                print(p1,p2,adjacent)
+                if not adjacent:
+                    self.Path[i][1] = False
+                i -= 1
+            print("After:  ",self.Path)
+        """
+        #input(">")
+    """
+    def test_adjacent(self, point1, point2):
+        result = False
+        if (point1[0] - point2[0])**2 == 1 and point1[1] - point2[1] == 0:
+            result = True
+        elif (point1[1] - point2[1])**2 == 1 and point1[0] - point2[0] == 0:
+            result = True
+        return result
+    """
+    def add_step(self, x,y):
+        # first step
+        if self.Path == None:
+            self.Path = Step(x, y, None, None)
+            self.pointer = self.Path
+        else:
+            # see if the new step is adjacent to the last step
+            adjacent = False
+            if x == self.pointer.x or y == self.pointer.y:
+                adjacent = True
+
+            if adjacent:
+                self.pointer.Next = Step(x, y, None, self.pointer)
+                self.pointer = self.pointer.Next
+            else:
+                tmp = self.pointer
+                while not adjacent:
+                    tmp = tmp.Prev
+                    if x == tmp.x or y == tmp.y:
+                        adjacent = True
+                self.pointer = tmp
+                self.pointer.Next = Step(x, y, None, self.pointer)
+                self.pointer = self.pointer.Next
 
     def calculate_next_step(self):
         directions = [(0,-1), (0,1), (-1,0), (1,0)]
@@ -127,9 +197,16 @@ class MazeSolver:
         self.Next.sort(reverse=True)
     
     def draw_path(self):
+        print(self.Path)
         ghost = [0,0]
-        ghost[0] = self.StartPoint[0]
-        ghost[1] = self.StartPoint[1]
+        """
+        for step in self.Path:
+            if step[1]:
+                ghost = step[0]
+                loc = str(ghost[0])+":"+str(ghost[1])
+                if loc in self.Board:
+                    self.Board[loc].obj = "G"
+        
         for next in self.Path:
             if next == "U":
                 ghost[1] -= 1
@@ -142,7 +219,7 @@ class MazeSolver:
             loc = str(ghost[0])+":"+str(ghost[1])
             if loc in self.Board:
                 self.Board[loc].obj = "G"
-
+        """
     def draw_maze(self):
         display = []
         colors = {"W": (0,0,0), "P":(0,162,232), "F":(237,28,36), " ":(255,255,255), "*":(222, 216, 35), "G":(177, 79, 179)}
@@ -172,4 +249,10 @@ class Cell:
         self.y = y
         self.obj = obj
 
+class Step:
+    def __init__(self,x,y,Next,Prev):
+        self.x = x
+        self.y = y
+        self.Next = Next
+        self.Prev = Prev
 MazeSolver()
