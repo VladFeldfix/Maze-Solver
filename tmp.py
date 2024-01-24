@@ -11,7 +11,7 @@ class MazeSolver:
         self.Board = {} # a list of Cell objects
         self.Width = 0 # maze Width
         self.Height = 0 # maze Height
-        self.Path = None # a linked list of step objects Step(x,y,Next) where next is a Step object too
+        self.Path = [] # a linked list of step objects Step(x,y,Next) where next is a Step object too
         
         # start
         self.start()
@@ -25,6 +25,7 @@ class MazeSolver:
                 win = False
                 self.calculate_next_step()
                 self.move()
+            self.add_step(self.Player[0],self.Player[1],win)
         self.draw_path()
         self.draw_maze()
     
@@ -89,7 +90,7 @@ class MazeSolver:
         self.Board[loc2].obj = "P"
 
         # make a journy diary
-        self.add_step(self.Player[0],self.Player[1])
+        #self.add_step(self.Player[0],self.Player[1])
         """
         # get the new location
         new_xy = (self.Player[0], self.Player[1])
@@ -158,7 +159,58 @@ class MazeSolver:
             result = True
         return result
     """
-    def add_step(self, x,y):
+    def add_step(self, x,y, Win):
+        print("Add point: ",x,y)
+        # insert a new point to the list
+        new_step = Step(x, y, None, [], Win)
+        self.Path.append(new_step)
+
+        # search for adjacent point to make a link
+        for step in self.Path:
+            if step.x == new_step.x or step.y == new_step.y:
+                if (step.x - new_step.x)**2 == 1 or (step.y - new_step.y)**2 == 1:
+                    step.Next.append(new_step)
+                    new_step.Prev = step
+        
+        # print
+        result = ""
+        index = 0
+        for i in self.Path:
+            result = ""
+            result += "(x:"+str(i.x)+" y:"+str(i.y)+")"
+            if i.Prev != None:
+                result += "  Prev:  (x:"+str(i.Prev.x)+" y:"+str(i.Prev.y)+")"
+            if len(i.Next) > 0:
+                result += "  Nexts:"
+                for k in i.Next:
+                    result += " (x:"+str(k.x)+" y:"+str(k.y)+")"
+            result += " Win: "+str(i.Win)
+            index += 1
+            print(str(index).zfill(4),result)
+
+
+        #input(">")
+        # first step
+        """
+        self.Path:
+            self.Path = Step(x, y, None, None)
+        else:
+            # find next adjacent point
+            pointer = self.Path
+            adjacent = False
+            while not adjacent:
+                print("pointer: ",pointer.x,pointer.y)
+                if x == pointer.x:
+                    if y == pointer.y+1 or y == pointer.y-1:
+                        adjacent = True
+                else:
+                    if x == pointer.x+1 or x == pointer.x-1:
+                        if y == pointer.y:
+                            adjacent = True
+                if adjacent:
+                    pointer.Next = Step(x, y, pointer, None)
+                else:
+                    pointer = pointer.Next
         # first step
         if self.Path == None:
             self.Path = Step(x, y, None, None)
@@ -174,13 +226,16 @@ class MazeSolver:
                 self.pointer = self.pointer.Next
             else:
                 tmp = self.pointer
+                #print("   ",tmp.x,tmp.y)
                 while not adjacent:
                     tmp = tmp.Prev
                     if x == tmp.x or y == tmp.y:
                         adjacent = True
                 self.pointer = tmp
+                #print("     ",self.pointer.x,self.pointer.y)
                 self.pointer.Next = Step(x, y, None, self.pointer)
                 self.pointer = self.pointer.Next
+        """
 
     def calculate_next_step(self):
         directions = [(0,-1), (0,1), (-1,0), (1,0)]
@@ -197,9 +252,15 @@ class MazeSolver:
         self.Next.sort(reverse=True)
     
     def draw_path(self):
-        print(self.Path)
-        ghost = [0,0]
+        pointer = self.Path
+        while pointer != None:
+            loc = str(pointer.x)+":"+str(pointer.y)
+            if loc in self.Board:
+                self.Board[loc].obj = "G"
+            pointer = pointer.Next
+
         """
+        ghost = [0,0]
         for step in self.Path:
             if step[1]:
                 ghost = step[0]
@@ -250,9 +311,11 @@ class Cell:
         self.obj = obj
 
 class Step:
-    def __init__(self,x,y,Next,Prev):
+    def __init__(self,x,y,Prev,Next,Win):
         self.x = x
         self.y = y
-        self.Next = Next
         self.Prev = Prev
+        self.Next = Next
+        self.Win = Win
+
 MazeSolver()
