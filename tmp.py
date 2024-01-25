@@ -17,21 +17,26 @@ class MazeSolver:
         self.start()
     
     def start(self):
+        # setup
         win = False
         self.create_maze()
+
+        # run the algorythm until winning
         while not win:
             win = True
-            if self.Player[0] != self.Target[0] or self.Player[1] != self.Target[1]:
-                win = False
-                self.calculate_next_step()
-                self.move()
-            self.add_step(self.Player[0],self.Player[1],win)
-        self.draw_path()
-        self.draw_maze()
+            if self.Player[0] != self.Target[0] or self.Player[1] != self.Target[1]: # player is not in the end pos
+                win = False # do another step later
+                self.calculate_next_step() # calculate what step to take
+                self.move() # do the step
+            self.add_step(self.Player[0],self.Player[1],win) # write step to step log
+        
+        # end of the run
+        self.draw_path() # draw the chosen path 
+        self.draw_maze() # draw the rest of the maze
     
     def create_maze(self):
         # load image
-        img = Image.open("maze.png")
+        img = Image.open("maze (2).png")
         pix = img.load()
         self.Width = img.size[0]
         self.Height = img.size[1]
@@ -108,7 +113,7 @@ class MazeSolver:
                 direction = "L"
         # white down the last location and what direction should be taken from there
         self.Path.append([old_xy,direction])
-        #print(old_xy,direction)
+        ##print(old_xy,direction)
         # the distance between the last and this xy to see if there was a leap
         delta = int(math.sqrt((new_xy[0]-old_xy[0])**2 + (new_xy[1]-old_xy[1])**2))
         # if there was a leap mark this place with an x
@@ -129,25 +134,25 @@ class MazeSolver:
             elif new_xy[0] < old_xy[0]:
                 self.Direction = "L"
         delta = int(math.sqrt((new_xy[0]-old_xy[0])**2 + (new_xy[1]-old_xy[1])**2))
-        print(old_xy, new_xy, self.Direction, delta)
+        #print(old_xy, new_xy, self.Direction, delta)
         self.Path.append([old_xy, True])
         if delta != 1:
             i = 0
             for x in self.Path:
                 self.Path[i][1] = True
                 i += 1
-            print("Before: ",self.Path)
+            #print("Before: ",self.Path)
             adjacent = False
             i = len(self.Path)-1
             while not adjacent:
                 p1 = new_xy
                 p2 = self.Path[i][0]
                 adjacent = self.test_adjacent(p1, p2)
-                print(p1,p2,adjacent)
+                #print(p1,p2,adjacent)
                 if not adjacent:
                     self.Path[i][1] = False
                 i -= 1
-            print("After:  ",self.Path)
+            #print("After:  ",self.Path)
         """
         #input(">")
     """
@@ -160,7 +165,7 @@ class MazeSolver:
         return result
     """
     def add_step(self, x,y, Win):
-        print("Add point: ",x,y)
+        #print("Add point: ",x,y)
         # insert a new point to the list
         new_step = Step(x, y, None, [], Win)
         self.Path.append(new_step)
@@ -172,7 +177,7 @@ class MazeSolver:
                     step.Next.append(new_step)
                     new_step.Prev = step
         
-        # print
+        # #print
         result = ""
         index = 0
         for i in self.Path:
@@ -186,7 +191,7 @@ class MazeSolver:
                     result += " (x:"+str(k.x)+" y:"+str(k.y)+")"
             result += " Win: "+str(i.Win)
             index += 1
-            print(str(index).zfill(4),result)
+            #print(str(index).zfill(4),result)
 
 
         #input(">")
@@ -199,7 +204,7 @@ class MazeSolver:
             pointer = self.Path
             adjacent = False
             while not adjacent:
-                print("pointer: ",pointer.x,pointer.y)
+                #print("pointer: ",pointer.x,pointer.y)
                 if x == pointer.x:
                     if y == pointer.y+1 or y == pointer.y-1:
                         adjacent = True
@@ -226,13 +231,13 @@ class MazeSolver:
                 self.pointer = self.pointer.Next
             else:
                 tmp = self.pointer
-                #print("   ",tmp.x,tmp.y)
+                ##print("   ",tmp.x,tmp.y)
                 while not adjacent:
                     tmp = tmp.Prev
                     if x == tmp.x or y == tmp.y:
                         adjacent = True
                 self.pointer = tmp
-                #print("     ",self.pointer.x,self.pointer.y)
+                ##print("     ",self.pointer.x,self.pointer.y)
                 self.pointer.Next = Step(x, y, None, self.pointer)
                 self.pointer = self.pointer.Next
         """
@@ -243,15 +248,52 @@ class MazeSolver:
             x = self.Player[0]+cor[0]
             y = self.Player[1]+cor[1]
             # d=√((x_2-x_1)²+(y_2-y_1)²)
-            delta = int(math.sqrt((self.Target[0]-x)**2 + (self.Target[1]-y)**2))
+            delta1 = int(math.sqrt((self.Target[0]-x)**2 + (self.Target[1]-y)**2))
+            delta2 = int(math.sqrt((self.Player[0]-x)**2 + (self.Player[1]-y)**2))
+            score = delta1+delta2
             loc = str(x)+":"+str(y)
             if loc in self.Board:
                 if self.Board[loc].obj != "W" and self.Board[loc].obj != "P" and self.Board[loc].obj != "*":
-                    self.Next.append((delta,x,y))
+                    self.Next.append((score,x,y))
                     self.Board[loc].obj = "*"
         self.Next.sort(reverse=True)
     
     def draw_path(self):
+        # select win step
+        winning_step = None
+        for step in self.Path:
+            if step.Win:
+                winning_step = step
+        pointer = winning_step
+
+        # search for the first point
+        path = []
+        while pointer.Prev != None:
+            path.append(pointer)
+            pointer = pointer.Prev
+        
+        for step in path:
+            loc = str(step.x)+":"+str(step.y)
+            if loc in self.Board:
+                self.Board[loc].obj = "G"
+        #print("\nFinal result:")
+        
+        # #print
+        result = ""
+        index = 0
+        for i in path:
+            result = ""
+            result += "(x:"+str(i.x)+" y:"+str(i.y)+")"
+            if i.Prev != None:
+                result += "  Prev:  (x:"+str(i.Prev.x)+" y:"+str(i.Prev.y)+")"
+            if len(i.Next) > 0:
+                result += "  Nexts:"
+                for k in i.Next:
+                    result += " (x:"+str(k.x)+" y:"+str(k.y)+")"
+            result += " Win: "+str(i.Win)
+            index += 1
+            #print(str(index).zfill(4),result)
+        """
         pointer = self.Path
         while pointer != None:
             loc = str(pointer.x)+":"+str(pointer.y)
@@ -259,7 +301,7 @@ class MazeSolver:
                 self.Board[loc].obj = "G"
             pointer = pointer.Next
 
-        """
+       
         ghost = [0,0]
         for step in self.Path:
             if step[1]:
