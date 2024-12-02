@@ -70,7 +70,7 @@ class MazeSolver:
 
                 # add cell to board
                 self.board[y].append(cell)
-        #self.display()
+        self.display()
     
     def solve(self):
         # goto start point
@@ -89,8 +89,8 @@ class MazeSolver:
 
             # create 4 directions
             directions = ("UP", "DOWN", "LEFT", "RIGHT")
-            for dir in directions:
-                if dir == "UP":
+            for direction in directions:
+                if direction == "UP":
                     testX = self.pointer.x
                     testY = self.pointer.y-1
                     self.pointer.up = Cell()
@@ -105,10 +105,13 @@ class MazeSolver:
                     if self.pointer.up.celltype == "_":
                         if self.pointer.up.distance < smallest_distance:
                             if not self.pointer.up.blocked:
+                                smallest_distance = self.pointer.up.distance
                                 self.pointer.goto = self.pointer.up
                                 self.pointer.up.prev = self.pointer
+                    #print("UP distance:",self.pointer.up.distance,self.pointer.up.celltype)
+                    
 
-                if dir == "DOWN":
+                if direction == "DOWN":
                     testX = self.pointer.x
                     testY = self.pointer.y+1
                     self.pointer.down = Cell()
@@ -123,9 +126,12 @@ class MazeSolver:
                     if self.pointer.down.celltype == "_":
                         if self.pointer.down.distance < smallest_distance:
                             if not self.pointer.down.blocked:
+                                smallest_distance = self.pointer.down.distance
                                 self.pointer.goto = self.pointer.down
                                 self.pointer.down.prev = self.pointer
-                if dir == "LEFT":
+                    #print("DOWN distance:",self.pointer.down.distance,self.pointer.down.celltype)
+
+                if direction == "LEFT":
                     testX = self.pointer.x-1
                     testY = self.pointer.y
                     self.pointer.left = Cell()
@@ -140,9 +146,12 @@ class MazeSolver:
                     if self.pointer.left.celltype == "_":
                         if self.pointer.left.distance < smallest_distance:
                             if not self.pointer.left.blocked:
+                                smallest_distance = self.pointer.left.distance
                                 self.pointer.goto = self.pointer.left
                                 self.pointer.left.prev = self.pointer
-                if dir == "RIGHT":
+                    #print("LEFT distance:",self.pointer.left.distance,self.pointer.left.celltype)
+
+                if direction == "RIGHT":
                     testX = self.pointer.x+1
                     testY = self.pointer.y
                     self.pointer.right = Cell()
@@ -157,30 +166,58 @@ class MazeSolver:
                     if self.pointer.right.celltype == "_":
                         if self.pointer.right.distance < smallest_distance:
                             if not self.pointer.right.blocked:
+                                smallest_distance = self.pointer.right.distance
                                 self.pointer.goto = self.pointer.right
                                 self.pointer.right.prev = self.pointer
+                    
+                    #print("RIGHT distance:",self.pointer.right.distance,self.pointer.right.celltype)
                 
             # solved
-            solved = self.board[self.pointer.up.y][self.pointer.up.x] == "F" or self.board[self.pointer.down.y][self.pointer.down.x] == "F" or self.board[self.pointer.left.y][self.pointer.left.x] == "F" or self.board[self.pointer.right.y][self.pointer.right.x] == "F"
+            try:
+                solved_up = self.board[self.pointer.up.y][self.pointer.up.x] == "F"
+            except:
+                solved_up = False
+            
+            try:
+                solved_down = self.board[self.pointer.down.y][self.pointer.down.x] == "F"
+            except:
+                solved_down = False
+
+            try:
+                solved_left = self.board[self.pointer.left.y][self.pointer.left.x] == "F"
+            except:
+                solved_left = False
+
+            try:
+                solved_right = self.board[self.pointer.right.y][self.pointer.right.x] == "F"
+            except:
+                solved_right = False
+            
+            solved = solved_up or solved_down or solved_left or solved_right
 
             # goto next place
             if not solved:
                 if self.pointer.goto != None:
                     self.pointer = self.pointer.goto
+                    #print("SELECTED distance:",self.pointer.distance,self.pointer.celltype)
                     self.board[self.pointer.y][self.pointer.x] = "U"
                 else:
                     self.pointer.blocked = True
                     self.pointer = self.pointer.prev
                 # show result
-                self.display()
+                #self.display()
             else:
-                print("SOLVED")
+                #print("SOLVED")
                 self.display_solution()
     
     def calculate_distance_to_finish(self, x, y):
         deltax = abs(self.finish_point[0]-x)
         deltay = abs(self.finish_point[1]-y)
-        return math.sqrt(deltax**2+deltay**2)
+        distance_to_finish = math.sqrt(deltax**2+deltay**2)
+        deltax = abs(self.start_point[0]-x)
+        deltay = abs(self.start_point[1]-y)
+        distance_to_start = math.sqrt(deltax**2+deltay**2)
+        return distance_to_finish
 
     def display(self):
         display = ""
@@ -197,30 +234,30 @@ class MazeSolver:
             y += 1
             x = 0
         print(display)
-        """
-        print("Pointer:")
-
-        print('self.pointer.up: ',self.pointer.up)
-        print('self.pointer.down: ',self.pointer.down)
-        print('self.pointer.left: ',self.pointer.left)
-        print('self.pointer.right: ',self.pointer.right)
-        print('self.pointer.x: ',self.pointer.x)
-        print('self.pointer.y: ',self.pointer.y)
-        print('self.pointer.distance: ',self.pointer.distance)
-        print('self.pointer.celltype: ',self.pointer.celltype)
-        print('self.pointer.goto: ',self.pointer.goto)
-        print('self.pointer.prev: ',self.pointer.prev)
-        print('self.pointer.blocked: ',self.pointer.blocked)
-        """
+        #print("Pointer:")
+        #print('self.pointer.up: ',self.pointer.up)
+        #print('self.pointer.down: ',self.pointer.down)
+        #print('self.pointer.left: ',self.pointer.left)
+        #print('self.pointer.right: ',self.pointer.right)
+        #print('self.pointer.x: ',self.pointer.x)
+        #print('self.pointer.y: ',self.pointer.y)
+        #print('self.pointer.distance: ',self.pointer.distance)
+        #print('self.pointer.celltype: ',self.pointer.celltype)
+        #print('self.pointer.goto: ',self.pointer.goto)
+        #print('self.pointer.prev: ',self.pointer.prev)
+        #print('self.pointer.blocked: ',self.pointer.blocked)
         #input(">")
     
     def display_solution(self):
+        # calculate path back
         pointer = self.pointer
         path = []
         path.append(str(pointer.x)+":"+str(pointer.y))
         while pointer.prev != None:
             pointer = pointer.prev
             path.append(str(pointer.x)+":"+str(pointer.y))
+
+        # display path back
         display = ""
         y = 0
         x = 0
@@ -228,13 +265,14 @@ class MazeSolver:
             for col in row:
                 if col == "U" or col == "_":
                     col = " "
-                if str(x)+":"+str(y) in path:
-                    display += "*"
-                else:
-                    display += col
+                cell = col
+                if self.board[y][x] != "S":
+                    if str(x)+":"+str(y) in path:
+                        cell = "*"
+                display += cell
                 x += 1
             display += "\n"
             y += 1
-            x = 0    
+            x = 0
         print(display)
 MazeSolver()
