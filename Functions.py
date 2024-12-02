@@ -1,172 +1,287 @@
-import math
 from PIL import Image
+import math
 
-class maze_solver:
+class Cell:
+    def __init__(self):
+        self.up = None
+        self.down = None
+        self.left = None
+        self.right = None
+        self.x = None
+        self.y = None
+        self.distance = None
+        self.celltype = None
+        self.goto = None
+        self.prev = None
+        self.blocked = False
+
+class functions:
     def __init__(self):
         self.reset()
     
     def reset(self):
-        self.Player = [0,0] # the x,y location of the Player
-        self.Target = [0,0] # the x,y location of the Target
-        self.StartPoint = [0,0] # the x,y location of the StartPoint
-        self.Next = [] # a list of potential next steps a list of (delta,x,y)
-        self.Board = {} # a list of Cell objects
-        self.Width = 0 # maze Width
-        self.Height = 0 # maze Height
-        self.Path = [] # a linked list of step objects Step(x,y,Next) where next is a Step object too
-
-    def create_maze(self, fileLocation):
-        # load image
-        img = Image.open(fileLocation)
-        pix = img.load()
-        self.Width = img.size[0]
-        self.Height = img.size[1]
-
-        # error maze too big
-        if self.Width > 500 or self.Height > 500:
-            return (False, "This file is too big. Max size is 500x500")
+        # setup global vars
+        self.board = []
+        self.start_point = ()
+        self.finish_point = ()
+        self.pointer = Cell()
+        self.width = 0
+        self.heigth = 0
+        self.smallest_distance = 0
     
-        # convert image to list
-        startPoint = False
-        finishPoint = False
-        for y in range(self.Height):
-            for x in range(self.Width):
-                color = pix[x,y]
-                obj = " "
+    def build_maze(self, filename):
+        # [boolean can_build, str error type]
+        can_build = True
+        error = ""
+        
+        # load image
+        img = Image.open(filename)
+        pix = img.load()
+
+        # get width and height
+        self.width = img.size[0]
+        self.heigth = img.size[1]
+        self.smallest_distance = math.sqrt(self.width**2+self.heigth**2)   
+        for y in range(self.heigth):
+            # add row to board
+            self.board.append([])
+
+            for x in range(self.width):
+                # determine the nature of the cell 
+                # < E empty > 
+                # < S start >
+                # < F finish >
+                # < W wall >
+
+                cell = " "
+                value = pix[x,y]
+                red = value[0]
+                green = value[1]
+                blue = value[2]
+
+                # start point
+                if red == 255 and green == 0 and blue == 0:
+                    cell = 'S'
+                    self.start_point = (x,y)
+                
+                # finish point
+                if red == 0 and green == 0 and blue == 255:
+                    cell = 'F'
+                    self.finish_point = (x,y)
                 
                 # wall
-                if color[0] == 0 and color[1] == 0 and color[2] == 0:
-                    obj = "W"
-                
-                # start
-                if not startPoint:
-                    if color[0] == 0 and color[1] == 162 and color[2] == 232:
-                        obj = "P"
-                        self.Player[0] = x
-                        self.Player[1] = y
-                        self.StartPoint[0] = x
-                        self.StartPoint[1] = y
-                        startPoint = True
-                
-                # finish
-                if not finishPoint:
-                    if color[0] == 237 and color[1] == 28 and color[2] == 36:
-                        obj = "F"
-                        self.Target[0] = x
-                        self.Target[1] = y
-                        finishPoint = True
-                
+                if cell == " ":
+                    if red < 255/2:
+                        cell = '█'
+
                 # add cell to board
-                loc = str(x)+":"+str(y)
-                self.Board[loc] = Cell(x,y,obj)
-        
-        # return evaluation result
-        if not startPoint:
-            return (False, "This file has no start point! To make a start point color at leat one pixel RBG (0,162,232)")
-        if not finishPoint:
-            return (False, "This file has no finish point! To make a finish point color at leat one pixel RBG (237,28,36)")
-        
-        # if everything is ok
-        return (True, "")
+                self.board[y].append(cell)
+        #self.display()
+        if len(self.start_point) == 0:
+            can_build = False
+            error = "Missing file"
+        return (can_build, error)
     
-    def calculate_next_step(self):
-        directions = [(0,-1), (0,1), (-1,0), (1,0)]
-        for cor in directions:
-            x = self.Player[0]+cor[0]
-            y = self.Player[1]+cor[1]
-            # d=√((x_2-x_1)²+(y_2-y_1)²)
-            delta1 = int(math.sqrt((self.Target[0]-x)**2 + (self.Target[1]-y)**2))
-            delta2 = int(math.sqrt((self.Player[0]-x)**2 + (self.Player[1]-y)**2))
-            score = delta1+delta2
-            loc = str(x)+":"+str(y)
-            if loc in self.Board:
-                if self.Board[loc].obj != "W" and self.Board[loc].obj != "P" and self.Board[loc].obj != "*":
-                    self.Next.append((score,x,y))
-                    self.Board[loc].obj = "*"
-        self.Next.sort(reverse=True)  
-    
-    def move(self):
-        # get the next location to be
-        next_cell = self.Next.pop()
-        x = next_cell[1]
-        y = next_cell[2]
-        loc1 = str(self.Player[0])+":"+str(self.Player[1])
-        loc2 = str(x)+":"+str(y)
+    def solve(self):
+        # goto start point
+        self.pointer = Cell()
+        self.pointer.x = self.start_point[0]
+        self.pointer.y = self.start_point[1]
+        self.pointer.distance = self.calculate_distance_to_finish(self.pointer.x, self.pointer.y)
+        self.pointer.celltype = "START"
 
-        # mark where player was so they wont be able to get back there
-        self.Board[loc1].obj = "*"
+        # start solving loop
+        solved = False
+        while not solved:
+            # reset
+            smallest_distance = self.smallest_distance
+            self.pointer.goto = None
 
-        # get new x, y
-        self.Player[0] = x
-        self.Player[1] = y
+            # create 4 directions
+            directions = ("UP", "DOWN", "LEFT", "RIGHT")
+            for direction in directions:
+                if direction == "UP":
+                    testX = self.pointer.x
+                    testY = self.pointer.y-1
+                    self.pointer.up = Cell()
+                    self.pointer.up.x = testX
+                    self.pointer.up.y = testY
+                    self.pointer.up.down = self.pointer
+                    self.pointer.up.distance = self.calculate_distance_to_finish(self.pointer.up.x, self.pointer.up.y)
+                    if testY >= 0:
+                        self.pointer.up.celltype = self.board[testY][testX]
+                    else:
+                        self.pointer.up.celltype = "BORDER"
+                    if self.pointer.up.celltype == " ":
+                        if self.pointer.up.distance < smallest_distance:
+                            if not self.pointer.up.blocked:
+                                smallest_distance = self.pointer.up.distance
+                                self.pointer.goto = self.pointer.up
+                                self.pointer.up.prev = self.pointer
+                    #print("UP distance:",self.pointer.up.distance,self.pointer.up.celltype)
+                    
 
-        # update the board
-        self.Board[loc2].obj = "P"
+                if direction == "DOWN":
+                    testX = self.pointer.x
+                    testY = self.pointer.y+1
+                    self.pointer.down = Cell()
+                    self.pointer.down.x = testX
+                    self.pointer.down.y = testY
+                    self.pointer.down.up = self.pointer
+                    self.pointer.down.distance = self.calculate_distance_to_finish(self.pointer.down.x, self.pointer.down.y)
+                    if testY < len(self.board):
+                        self.pointer.down.celltype = self.board[testY][testX]
+                    else:
+                        self.pointer.down.celltype = "BORDER"
+                    if self.pointer.down.celltype == " ":
+                        if self.pointer.down.distance < smallest_distance:
+                            if not self.pointer.down.blocked:
+                                smallest_distance = self.pointer.down.distance
+                                self.pointer.goto = self.pointer.down
+                                self.pointer.down.prev = self.pointer
+                    #print("DOWN distance:",self.pointer.down.distance,self.pointer.down.celltype)
 
-    def add_step(self, x,y, Win):
-        # insert a new point to the list
-        new_step = Step(x, y, None, [], Win)
-        self.Path.append(new_step)
+                if direction == "LEFT":
+                    testX = self.pointer.x-1
+                    testY = self.pointer.y
+                    self.pointer.left = Cell()
+                    self.pointer.left.x = testX
+                    self.pointer.left.y = testY
+                    self.pointer.left.right = self.pointer
+                    self.pointer.left.distance = self.calculate_distance_to_finish(self.pointer.left.x, self.pointer.left.y)
+                    if testX >= 0:
+                        self.pointer.left.celltype = self.board[testY][testX]
+                    else:
+                        self.pointer.left.celltype = "BORDER"
+                    if self.pointer.left.celltype == " ":
+                        if self.pointer.left.distance < smallest_distance:
+                            if not self.pointer.left.blocked:
+                                smallest_distance = self.pointer.left.distance
+                                self.pointer.goto = self.pointer.left
+                                self.pointer.left.prev = self.pointer
+                    #print("LEFT distance:",self.pointer.left.distance,self.pointer.left.celltype)
 
-        # search for adjacent point to make a link
-        for step in self.Path:
-            if step.x == new_step.x or step.y == new_step.y:
-                if (step.x - new_step.x)**2 == 1 or (step.y - new_step.y)**2 == 1:
-                    step.Next.append(new_step)
-                    new_step.Prev = step
-
-    def draw_path(self):
-        # select win step
-        winning_step = None
-        for step in self.Path:
-            if step.Win:
-                winning_step = step
-        pointer = winning_step
-
-        # search for the first point
-        path = []
-        while pointer.Prev != None:
-            path.append(pointer)
-            pointer = pointer.Prev
-        
-        for step in path:
-            loc = str(step.x)+":"+str(step.y)
-            if loc in self.Board:
-                self.Board[loc].obj = "G"
+                if direction == "RIGHT":
+                    testX = self.pointer.x+1
+                    testY = self.pointer.y
+                    self.pointer.right = Cell()
+                    self.pointer.right.x = testX
+                    self.pointer.right.y = testY
+                    self.pointer.right.left = self.pointer
+                    self.pointer.right.distance = self.calculate_distance_to_finish(self.pointer.right.x, self.pointer.right.y)
+                    if testX < len(self.board[testY]):
+                        self.pointer.right.celltype = self.board[testY][testX]
+                    else:
+                        self.pointer.right.celltype = "BORDER"
+                    if self.pointer.right.celltype == " ":
+                        if self.pointer.right.distance < smallest_distance:
+                            if not self.pointer.right.blocked:
+                                smallest_distance = self.pointer.right.distance
+                                self.pointer.goto = self.pointer.right
+                                self.pointer.right.prev = self.pointer
+                    
+                    #print("RIGHT distance:",self.pointer.right.distance,self.pointer.right.celltype)
                 
-    def draw_maze(self):
-        display = []
-        colors = {"W": (0,0,0), "P":(0,162,232), "F":(237,28,36), " ":(255,255,255), "*":(222, 216, 35), "G":(177, 79, 179)}
-        for y in range(self.Height):
-            for x in range(self.Width):
-                loc = str(x)+":"+str(y)
-                start_loc = str(self.StartPoint[0])+":"+str(self.StartPoint[1])
-                end_loc = str(self.Target[0])+":"+str(self.Target[1])
-                cell = self.Board[loc]
-                if loc != start_loc and loc != end_loc:
-                    obj = cell.obj
-                else:
-                    if loc == start_loc:
-                        obj = "P"
-                    elif loc == end_loc:
-                        obj = "F"
-                add = colors[obj]
-                display.append(add)
-        new_im = Image.new("RGB",(self.Width,self.Height))
-        new_im.putdata(display)
-        #new_im.show()
-        new_im.save("result.png")
-   
-class Cell:
-    def __init__(self,x,y,obj):
-        self.x = x
-        self.y = y
-        self.obj = obj
+            # solved
+            try:
+                solved_up = self.board[self.pointer.up.y][self.pointer.up.x] == "F"
+            except:
+                solved_up = False
+            
+            try:
+                solved_down = self.board[self.pointer.down.y][self.pointer.down.x] == "F"
+            except:
+                solved_down = False
 
-class Step:
-    def __init__(self,x,y,Prev,Next,Win):
-        self.x = x
-        self.y = y
-        self.Prev = Prev
-        self.Next = Next
-        self.Win = Win
+            try:
+                solved_left = self.board[self.pointer.left.y][self.pointer.left.x] == "F"
+            except:
+                solved_left = False
+
+            try:
+                solved_right = self.board[self.pointer.right.y][self.pointer.right.x] == "F"
+            except:
+                solved_right = False
+            
+            solved = solved_up or solved_down or solved_left or solved_right
+
+            # goto next place
+            if not solved:
+                if self.pointer.goto != None:
+                    self.pointer = self.pointer.goto
+                    #print("SELECTED distance:",self.pointer.distance,self.pointer.celltype)
+                    self.board[self.pointer.y][self.pointer.x] = "U"
+                else:
+                    self.pointer.blocked = True
+                    self.pointer = self.pointer.prev
+                # show result
+                #self.display()
+            else:
+                #print("SOLVED")
+                self.display_solution()
+    
+    def calculate_distance_to_finish(self, x, y):
+        deltax = abs(self.finish_point[0]-x)
+        deltay = abs(self.finish_point[1]-y)
+        distance_to_finish = math.sqrt(deltax**2+deltay**2)
+        deltax = abs(self.start_point[0]-x)
+        deltay = abs(self.start_point[1]-y)
+        distance_to_start = math.sqrt(deltax**2+deltay**2)
+        return distance_to_finish
+
+    def display(self):
+        display = ""
+        y = 0
+        x = 0
+        for row in self.board:
+            for col in row:
+                if self.pointer.x == x and self.pointer.y == y:
+                    display += "*"
+                else:
+                    display += col
+                x += 1
+            display += "\n"
+            y += 1
+            x = 0
+        print(display)
+        #print("Pointer:")
+        #print('self.pointer.up: ',self.pointer.up)
+        #print('self.pointer.down: ',self.pointer.down)
+        #print('self.pointer.left: ',self.pointer.left)
+        #print('self.pointer.right: ',self.pointer.right)
+        #print('self.pointer.x: ',self.pointer.x)
+        #print('self.pointer.y: ',self.pointer.y)
+        #print('self.pointer.distance: ',self.pointer.distance)
+        #print('self.pointer.celltype: ',self.pointer.celltype)
+        #print('self.pointer.goto: ',self.pointer.goto)
+        #print('self.pointer.prev: ',self.pointer.prev)
+        #print('self.pointer.blocked: ',self.pointer.blocked)
+        #input(">")
+    
+    def display_solution(self):
+        # calculate path back
+        pointer = self.pointer
+        path = []
+        path.append(str(pointer.x)+":"+str(pointer.y))
+        while pointer.prev != None:
+            pointer = pointer.prev
+            path.append(str(pointer.x)+":"+str(pointer.y))
+
+        # display path back
+        display = ""
+        y = 0
+        x = 0
+        for row in self.board:
+            for col in row:
+                if col == "U" or col == " ":
+                    col = " "
+                cell = col
+                if self.board[y][x] != "S":
+                    if str(x)+":"+str(y) in path:
+                        cell = "*"
+                display += cell
+                x += 1
+            display += "\n"
+            y += 1
+            x = 0
+        print(display)
