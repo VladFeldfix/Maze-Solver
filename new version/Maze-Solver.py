@@ -47,7 +47,7 @@ class MazeSolver:
                 # < F finish >
                 # < W wall >
 
-                cell = '_'
+                cell = " "
                 value = pix[x,y]
                 red = value[0]
                 green = value[1]
@@ -64,7 +64,7 @@ class MazeSolver:
                     self.finish_point = (x,y)
                 
                 # wall
-                if cell == '_':
+                if cell == " ":
                     if red < 255/2:
                         cell = '█'
 
@@ -102,7 +102,7 @@ class MazeSolver:
                         self.pointer.up.celltype = self.board[testY][testX]
                     else:
                         self.pointer.up.celltype = "BORDER"
-                    if self.pointer.up.celltype == "_":
+                    if self.pointer.up.celltype == " ":
                         if self.pointer.up.distance < smallest_distance:
                             if not self.pointer.up.blocked:
                                 smallest_distance = self.pointer.up.distance
@@ -123,7 +123,7 @@ class MazeSolver:
                         self.pointer.down.celltype = self.board[testY][testX]
                     else:
                         self.pointer.down.celltype = "BORDER"
-                    if self.pointer.down.celltype == "_":
+                    if self.pointer.down.celltype == " ":
                         if self.pointer.down.distance < smallest_distance:
                             if not self.pointer.down.blocked:
                                 smallest_distance = self.pointer.down.distance
@@ -143,7 +143,7 @@ class MazeSolver:
                         self.pointer.left.celltype = self.board[testY][testX]
                     else:
                         self.pointer.left.celltype = "BORDER"
-                    if self.pointer.left.celltype == "_":
+                    if self.pointer.left.celltype == " ":
                         if self.pointer.left.distance < smallest_distance:
                             if not self.pointer.left.blocked:
                                 smallest_distance = self.pointer.left.distance
@@ -163,7 +163,7 @@ class MazeSolver:
                         self.pointer.right.celltype = self.board[testY][testX]
                     else:
                         self.pointer.right.celltype = "BORDER"
-                    if self.pointer.right.celltype == "_":
+                    if self.pointer.right.celltype == " ":
                         if self.pointer.right.distance < smallest_distance:
                             if not self.pointer.right.blocked:
                                 smallest_distance = self.pointer.right.distance
@@ -263,7 +263,7 @@ class MazeSolver:
         x = 0
         for row in self.board:
             for col in row:
-                if col == "U" or col == "_":
+                if col == "U" or col == " ":
                     col = " "
                 cell = col
                 if self.board[y][x] != "S":
