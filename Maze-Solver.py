@@ -1,5 +1,4 @@
 # imports
-import Functions
 import tkinter
 from tkinter import *
 import tkinter.filedialog
@@ -32,7 +31,7 @@ class MazeSolver:
         self.width = 0
         self.heigth = 0
         self.smallest_distance = 0
-        self.colors = {" ":(255,255,255), "S":(255,0,0), "F":(0,0,255), "█":(0,0,0), "*":(0,255,0)}
+        self.colors = {" ":(255,255,255), "S":(255,0,0), "F":(0,0,255), "█":(0,0,0), "*":(0,255,0), "U":(255,255,0)}
 
         # START
         self.SetupGui()
@@ -210,8 +209,7 @@ class MazeSolver:
                                 smallest_distance = pointer.up.distance
                                 pointer.goto = pointer.up
                                 pointer.up.prev = pointer
-                    
-
+                
                 if direction == "DOWN":
                     testX = pointer.x
                     testY = pointer.y+1
@@ -315,8 +313,6 @@ class MazeSolver:
         x = 0
         for row in self.board:
             for col in row:
-                if col == "U" or col == " ":
-                    col = " "
                 cell = col
                 if self.board[y][x] != "S":
                     if str(x)+":"+str(y) in path:
