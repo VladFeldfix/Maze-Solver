@@ -154,8 +154,12 @@ class MazeSolver:
 
         # LOAD MAP PROJECTION OTNO THE SCREEN
         self.mazePNG = ImageTk.PhotoImage(Image.open("maze.png"))
-        self.canvas.create_image(5, 5, image=self.mazePNG, anchor=NW)
+        self.canvas.create_image(2, 2, image=self.mazePNG, anchor=NW)
         self.start_button.config(state=NORMAL)
+        
+        # SETUP POINTER
+        self.pointer = self.canvas.create_oval(2,2,10,10, fill='red', width=0)
+        self.canvas.coords(self.pointer, self.start_point[0]-4, self.start_point[1]-4, self.start_point[0]+4, self.start_point[1]+4)
 
     def Start(self):
         # DISABLE BUTTONS
@@ -296,8 +300,13 @@ class MazeSolver:
                     pointer = pointer.goto
                     self.board[pointer.y][pointer.x] = "U"
                 else:
+                    # go back
                     pointer.blocked = True
                     pointer = pointer.prev
+            try:
+                self.canvas.coords(self.pointer, pointer.x-4, pointer.y-4, pointer.x+4, pointer.y+4)
+            except:
+                pass
         
         # SAVE RESULT AS PNG FILE
         # calculate path back
@@ -307,6 +316,59 @@ class MazeSolver:
             pointer = pointer.prev
             path.append(str(pointer.x)+":"+str(pointer.y))
         
+        # calculate shortcuts in the path
+        largest_index = 0
+        index = 0
+        improved_path = []
+        while index < len(path)-1:
+            cell = path[index]
+            index += 1
+
+            xy = cell.split(":")
+            x = int(xy[0])
+            y = int(xy[1])
+            
+            # search for adjecent up
+            adjX = x
+            adjY = y-1
+            point = str(adjX)+":"+str(adjY) 
+            if point in path:
+                i = path.index(point)
+                if i > largest_index:
+                    largest_index = i
+                    index = largest_index
+            
+            # search for adjecent down
+            adjX = x
+            adjY = y+1
+            point = str(adjX)+":"+str(adjY) 
+            if point in path:
+                i = path.index(point)
+                if i > largest_index:
+                    largest_index = i
+                    index = largest_index
+
+            # search for adjecent left
+            adjX = x-1
+            adjY = y
+            point = str(adjX)+":"+str(adjY) 
+            if point in path:
+                i = path.index(point)
+                if i > largest_index:
+                    largest_index = i
+                    index = largest_index
+            
+            # search for adjecent right
+            adjX = x+1
+            adjY = y
+            point = str(adjX)+":"+str(adjY) 
+            if point in path:
+                i = path.index(point)
+                if i > largest_index:
+                    largest_index = i
+                    index = largest_index
+            improved_path.append(path[index])
+        
         # save as solved.png
         display = []
         y = 0
@@ -315,7 +377,7 @@ class MazeSolver:
             for col in row:
                 cell = col
                 if self.board[y][x] != "S":
-                    if str(x)+":"+str(y) in path:
+                    if str(x)+":"+str(y) in improved_path:
                         cell = "*"
                 display.append(self.colors[cell])
                 x += 1
@@ -330,7 +392,7 @@ class MazeSolver:
         # PROJECT RESULT ONTO SCREEN
         self.solvedPNG = ImageTk.PhotoImage(Image.open("solved.png"))
         self.canvas.create_image(5, 5, image=self.solvedPNG, anchor=NW)
-        self.start_button.config(state=NORMAL)
+        self.load_button.config(state=NORMAL)
     
     def CalculateDistanceToFinishline(self, x, y):
         return math.sqrt( (abs(self.finish_point[0]-x))**2 + (abs(self.finish_point[1]-y))**2 )
