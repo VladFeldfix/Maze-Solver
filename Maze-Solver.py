@@ -303,6 +303,7 @@ class MazeSolver:
                     # go back
                     pointer.blocked = True
                     pointer = pointer.prev
+<<<<<<< HEAD
             else:
                 if solved_up:
                     pointer.goto = pointer.up
@@ -317,6 +318,8 @@ class MazeSolver:
                     pointer.goto = pointer.right
                     pointer.right.prev = pointer
                 pointer = pointer.goto
+=======
+>>>>>>> dc60914a69306dad281dceab81a30e1abf9bb54b
             try:
                 self.canvas.coords(self.pointer, pointer.x-4, pointer.y-4, pointer.x+4, pointer.y+4)
             except:
@@ -329,7 +332,10 @@ class MazeSolver:
         while pointer.prev != None:
             pointer = pointer.prev
             path.append(str(pointer.x)+":"+str(pointer.y))
+<<<<<<< HEAD
         path.append(str(pointer.x)+":"+str(pointer.y))
+=======
+>>>>>>> dc60914a69306dad281dceab81a30e1abf9bb54b
         
         # calculate shortcuts in the path
         largest_index = 0
@@ -383,6 +389,7 @@ class MazeSolver:
                     largest_index = i
                     index = largest_index
             improved_path.append(path[index])
+<<<<<<< HEAD
         path = improved_path
 
         # reduce unnecessary turn
@@ -495,6 +502,9 @@ class MazeSolver:
                     improved_path.append(start_point)
                 #input(improved_path)
 
+=======
+        
+>>>>>>> dc60914a69306dad281dceab81a30e1abf9bb54b
         # save as solved.png
         display = []
         y = 0
@@ -517,7 +527,11 @@ class MazeSolver:
         
         # PROJECT RESULT ONTO SCREEN
         self.solvedPNG = ImageTk.PhotoImage(Image.open("solved.png"))
+<<<<<<< HEAD
         self.canvas.create_image(2, 2, image=self.solvedPNG, anchor=NW)
+=======
+        self.canvas.create_image(5, 5, image=self.solvedPNG, anchor=NW)
+>>>>>>> dc60914a69306dad281dceab81a30e1abf9bb54b
         self.load_button.config(state=NORMAL)
     
     def CalculateDistanceToFinishline(self, x, y):
@@ -526,4 +540,8 @@ class MazeSolver:
     def Exit(self):
         self.root.destroy()
         os._exit(1)
+<<<<<<< HEAD
 MazeSolver()
+=======
+MazeSolver()
+>>>>>>> dc60914a69306dad281dceab81a30e1abf9bb54b
